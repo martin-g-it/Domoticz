@@ -1,0 +1,72 @@
+return {
+	on = {
+		devices = {
+			647 , -- 'Ventilatie'
+            355   -- 'Badkamer Temp & Hum'
+            } 
+        },
+    
+        data =  {
+            previousTemp_355 = { initial = 100 } ,
+            previousHumidity_355 = { initial = 100 }
+        },
+    
+	execute = function(domoticz, device)
+        
+        -- Direct switch
+        if device.idx == 647 then
+            -- First remove any queued commands (eg. the 10 min. timer)
+            domoticz.devices(647).cancelQueuedCommands()
+            
+            -- Switch level?
+            if device.level == 10 then 
+                -- Level 1
+                print("Mechanische Ventilatie - Level 1")
+                assert(domoticz.openURL('http://192.168.2.104/control?cmd=GPIO,5,0'))
+                assert(domoticz.openURL('http://192.168.2.104/control?cmd=GPIO,5,1').afterSec(1))
+            elseif device.level == 20 then 
+                -- Level 2 
+                print("Mechanische Ventilatie - Level 2")
+                assert(domoticz.openURL('http://192.168.2.104/control?cmd=GPIO,12,0'))
+                assert(domoticz.openURL('http://192.168.2.104/control?cmd=GPIO,12,1').afterSec(1))
+            elseif device.level == 30 or device.level == 50 then 
+                -- Level 3 / Auto
+                print("Mechanische Ventilatie - Level 3")
+                assert(domoticz.openURL('http://192.168.2.104/control?cmd=GPIO,13,0'))
+                assert(domoticz.openURL('http://192.168.2.104/control?cmd=GPIO,13,1').afterSec(1))
+            elseif device.level == 40 then 
+                -- Level 3 - 10 minute timer
+                print("Mechanische Ventilatie - Level 3 (10 min)")
+                assert(domoticz.openURL('http://192.168.2.104/control?cmd=GPIO,14,0'))
+                assert(domoticz.openURL('http://192.168.2.104/control?cmd=GPIO,14,1').afterSec(1))
+                -- After 10 minutes (+ 40 seconds in reality) MV wil switch to level 1; so also update the Domoticz switch accordingly
+                domoticz.devices(647).setLevel(10).afterSec(640).silent() 
+            end
+
+        -- Humidity based switch
+        elseif device.idx == 355 then
+            if device.humidity >= domoticz.variables('Bathroom_MV_trigger_high').value and domoticz.devices(647).level ~= 50 then
+                -- More than 'high' % variable humidity and not activated yet
+                print('Bathroom Auto switch (On) ; Temp.: '..domoticz.round(domoticz.data.previousTemp_355,2)..' > '..domoticz.round(device.temperature,2)..' Hum.: '..domoticz.data.previousHumidity_355..'% > '..device.humidity..'% | Triggers: '..domoticz.variables('Bathroom_MV_trigger_low').value..'% = off / '..domoticz.variables('Bathroom_MV_trigger_high').value..'% = on')
+                domoticz.devices(647).setLevel(50) -- Auto high
+                --domoticz.notify('Ventilatie aan', 'Ventilatie: Auto switch (On) '..'\n' ..'Temp.: '..domoticz.round(domoticz.data.previousTemp_355,2).." > "..domoticz.round(device.temperature,2).." Hum.: "..domoticz.data.previousHumidity_355.."% > "..device.humidity..'%', domoticz.PRIORITY_MEDIUM, domoticz.SOUND_PERSISTENT, nil, domoticz.NSS_TELEGRAM)
+            elseif device.humidity < domoticz.variables('Bathroom_MV_trigger_low').value and domoticz.devices(647).level == 50 then 
+                -- Less than 'low' % variable humidity and activated setting
+                print('Bathroom Auto switch (Off); Temp.: '..domoticz.round(domoticz.data.previousTemp_355,2)..' > '..domoticz.round(device.temperature,2)..' Hum.: '..domoticz.data.previousHumidity_355..'% > '..device.humidity..'% | Triggers: '..domoticz.variables('Bathroom_MV_trigger_low').value..'% = off / '..domoticz.variables('Bathroom_MV_trigger_high').value..'% = on')
+                domoticz.devices(647).setLevel(10) -- Level 1
+                --domoticz.notify('Ventilatie aan', 'Ventilatie: Auto switch (Off) '..'\n' ..'Temp.: '..domoticz.round(domoticz.data.previousTemp_355,2).." > "..domoticz.round(device.temperature,2).." Hum.: "..domoticz.data.previousHumidity_355.."% > "..device.humidity..'%', domoticz.PRIORITY_MEDIUM, domoticz.SOUND_PERSISTENT, nil, domoticz.NSS_TELEGRAM)
+            --elseif device.humidity >= domoticz.variables('Bathroom_MV_trigger_low').value and device.humidity < domoticz.variables('Bathroom_MV_trigger_high').value then
+            --    print('Bathroom status update....; Temp.: '..domoticz.round(domoticz.data.previousTemp_355,2)..' > '..domoticz.round(device.temperature,2)..' Hum.: '..domoticz.data.previousHumidity_355..'% > '..device.humidity..'% | Triggers: '..domoticz.variables('Bathroom_MV_trigger_low').value..'% = off / '..domoticz.variables('Bathroom_MV_trigger_high').value..'% = on')
+            else
+                if domoticz.variables('Bathroom_temp_hum_log').value == 1 and ( domoticz.round(domoticz.data.previousTemp_355,2) ~= domoticz.round(device.temperature,2) or domoticz.data.previousHumidity_355 ~= device.humidity ) then
+                    print('Bathroom status update....; Temp.: '..domoticz.round(domoticz.data.previousTemp_355,2)..' > '..domoticz.round(device.temperature,2)..' Hum.: '..domoticz.data.previousHumidity_355..'% > '..device.humidity..'% | Triggers: '..domoticz.variables('Bathroom_MV_trigger_low').value..'% = off / '..domoticz.variables('Bathroom_MV_trigger_high').value..'% = on')
+                    --domoticz.notify('Ventilatie', 'Badkamer status:'..'\n' ..'Temp.: '..domoticz.round(domoticz.data.previousTemp_355,2)..' > '..domoticz.round(device.temperature,2)..' Hum.: '..domoticz.data.previousHumidity_355..'% > '..device.humidity..'%', domoticz.PRIORITY_MEDIUM, domoticz.SOUND_PERSISTENT, nil, domoticz.NSS_TELEGRAM)
+                end 
+        end
+        
+            -- Store Temp. & Hum. data
+            domoticz.data.previousTemp_355      = device.temperature            
+            domoticz.data.previousHumidity_355  = device.humidity
+        end
+    end
+}
