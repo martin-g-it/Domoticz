@@ -30,7 +30,7 @@ return {
                 assert(domoticz.openURL('http://192.168.2.104/control?cmd=GPIO,12,0'))
                 assert(domoticz.openURL('http://192.168.2.104/control?cmd=GPIO,12,1').afterSec(1))
             elseif device.level == 30 or device.level == 50 then 
-                -- Level 3 / Auto
+                -- Level 3 / Auto high
                 print("Mechanische Ventilatie - Level 3")
                 assert(domoticz.openURL('http://192.168.2.104/control?cmd=GPIO,13,0'))
                 assert(domoticz.openURL('http://192.168.2.104/control?cmd=GPIO,13,1').afterSec(1))
