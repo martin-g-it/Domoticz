@@ -61,12 +61,12 @@ return {
                 if domoticz.variables('Bathroom_temp_hum_log').value == 1 and ( domoticz.round(domoticz.data.previousTemp_355,2) ~= domoticz.round(device.temperature,2) or domoticz.data.previousHumidity_355 ~= device.humidity ) then
                     print('Bathroom status update....; Temp.: '..domoticz.round(domoticz.data.previousTemp_355,2)..' > '..domoticz.round(device.temperature,2)..' Hum.: '..domoticz.data.previousHumidity_355..'% > '..device.humidity..'% | Triggers: '..domoticz.variables('Bathroom_MV_trigger_low').value..'% = off / '..domoticz.variables('Bathroom_MV_trigger_high').value..'% = on')
                     --domoticz.notify('Ventilatie', 'Badkamer status:'..'\n' ..'Temp.: '..domoticz.round(domoticz.data.previousTemp_355,2)..' > '..domoticz.round(device.temperature,2)..' Hum.: '..domoticz.data.previousHumidity_355..'% > '..device.humidity..'%', domoticz.PRIORITY_MEDIUM, domoticz.SOUND_PERSISTENT, nil, domoticz.NSS_TELEGRAM)
-                end 
+            end 
         end
         
-            -- Store Temp. & Hum. data
-            domoticz.data.previousTemp_355      = device.temperature            
-            domoticz.data.previousHumidity_355  = device.humidity
-        end
+        -- Store Temp. & Hum. data
+        domoticz.data.previousTemp_355      = device.temperature            
+        domoticz.data.previousHumidity_355  = device.humidity
     end
+end
 }
